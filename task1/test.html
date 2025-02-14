@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Airplane Control Simulation</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        label {
+            margin-right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="controls">
+        <label>
+            Yaw Angle (0-360°):
+            <input type="number" id="yaw" min="0" max="360" value="0">
+        </label>
+        <label>
+            Airspeed (knots):
+            <input type="number" id="speed" min="0" value="0">
+        </label>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Initial state
+        let state = {
+            x: canvas.width/2,
+            y: canvas.height/2,
+            yaw: 0,    // Degrees
+            speed: 0,  // Pixels per second
+            trajectory: [],
+            lastTime: Date.now()
+        };
+
+        // DOM elements
+        const yawInput = document.getElementById('yaw');
+        const speedInput = document.getElementById('speed');
+
+        // Event listeners
+        yawInput.addEventListener('input', (e) => {
+            state.yaw = parseFloat(e.target.value) % 360;
+        });
+
+        speedInput.addEventListener('input', (e) => {
+            state.speed = parseFloat(e.target.value);
+        });
+
+        function drawAirplane(x, y, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle * Math.PI/180 + Math.PI/2);
+            
+            // Draw triangle
+            ctx.beginPath();
+            ctx.moveTo(0, -10);
+            ctx.lineTo(5, 10);
+            ctx.lineTo(-5, 10);
+            ctx.closePath();
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw trajectory
+            if (state.trajectory.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(state.trajectory[0].x, state.trajectory[0].y);
+                for (const point of state.trajectory) {
+                    ctx.lineTo(point.x, point.y);
+                }
+                ctx.strokeStyle = 'blue';
+                ctx.stroke();
+            }
+
+            // Draw airplane
+            drawAirplane(state.x, state.y, state.yaw);
+        }
+
+        function update() {
+            const now = Date.now();
+            const dt = (now - state.lastTime) / 1000; // Delta time in seconds
+            state.lastTime = now;
+
+            // Update position
+            if (state.speed > 0) {
+                const angle = state.yaw * Math.PI / 180;
+                const dx = Math.cos(angle) * state.speed * dt;
+                const dy = Math.sin(angle) * state.speed * dt;
+                
+                state.x += dx;
+                state.y += dy;
+                
+                // Keep position within canvas bounds
+                state.x = (state.x + canvas.width) % canvas.width;
+                state.y = (state.y + canvas.height) % canvas.height;
+
+                state.trajectory.push({x: state.x, y: state.y});
+            }
+
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        // Initialize trajectory with starting position
+        state.trajectory.push({x: state.x, y: state.y});
+        update();
+    </script>
+</body>
+</html>
